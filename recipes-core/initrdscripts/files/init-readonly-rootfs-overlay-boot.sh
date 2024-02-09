@@ -61,6 +61,9 @@ read_args() {
 				ROOT_RWRESET=$optarg ;;
 			rootrwoptions=*)
 				ROOT_RWMOUNTOPTIONS_DEVICE="$optarg" ;;
+			overlayfstype=*)
+				modprobe "$optarg" 2> /dev/null || \
+					log "Could not load $optarg module";;
 			init=*)
 			INIT=$optarg ;;
 		esac
