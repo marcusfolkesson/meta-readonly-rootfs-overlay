@@ -135,6 +135,10 @@ The same as before but it now starts `/bin/sh` instead of `/sbin/init`
 
 ### Details
 
+`overlayfstype=` if support fot the overlay filesystem type (currently overlayfs
+and aufs is supported) is not build into the kernel, you can specify the required
+module name here.
+
 `root=` specifies the read-only root file system device. If this is not
 specified, the current rootfs is used.
 
