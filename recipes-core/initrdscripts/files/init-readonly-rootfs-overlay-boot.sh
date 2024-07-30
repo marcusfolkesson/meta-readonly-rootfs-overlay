@@ -31,7 +31,7 @@ early_setup() {
 	mkdir -p /proc
 	mkdir -p /sys
 	$MOUNT -t proc proc /proc
-	$MOUNT -t sysfs sysfs /sys
+	grep -w "/sys" /proc/mounts >/dev/null || $MOUNT -t sysfs sysfs /sys
 	grep -w "/dev" /proc/mounts >/dev/null || $MOUNT -t devtmpfs none /dev
 }
 
