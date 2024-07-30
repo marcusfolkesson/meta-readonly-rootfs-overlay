@@ -80,6 +80,32 @@ log() {
 	echo "rorootfs-overlay: $1" > "$CONSOLE"
 }
 
+resolve_device() {
+	local dev=$1
+
+	if [ "$(echo $dev | cut -c1-5)" = "UUID=" ]; then
+		local uuid=$(echo $dev | cut -c6-)
+		new_dev="/dev/disk/by-uuid/$uuid"
+	elif [ "$(echo $dev | cut -c1-9)" = "PARTUUID=" ]; then
+		local partuuid=$(echo $dev | cut -c10-)
+		new_dev="/dev/disk/by-partuuid/$partuuid"
+	elif [ "$(echo $dev | cut -c1-10)" = "PARTLABEL=" ]; then
+		local partlabel=$(echo $dev | cut -c11-)
+		new_dev="/dev/disk/by-partlabel/$partlabel"
+	elif [ "$(echo $dev | cut -c1-6)" = "LABEL=" ]; then
+		local label=$(echo $dev | cut -c7-)
+		new_dev="/dev/disk/by-label/$label"
+	else
+		new_dev="$dev"
+	fi
+
+	if [ "$new_dev" != "$dev" ] && [ ! -d /dev/disk ]; then
+		fatal "$dev device naming is not supported without udev"
+	fi
+
+	echo "$new_dev"
+}
+
 wait_for_device() {
 	local dev=$1
 
@@ -109,6 +135,7 @@ mount_and_boot() {
 	# Build mount options for read only root file system.
 	# If no read-only device was specified via kernel command line, use
 	# current root file system via bind mount.
+	ROOT_RODEVICE=$(resolve_device "$ROOT_RODEVICE")
 	wait_for_device "${ROOT_RODEVICE}"
 	ROOT_ROMOUNTPARAMS_BIND="-o ${ROOT_ROMOUNTOPTIONS} /"
 	if [ -n "${ROOT_RODEVICE}" ]; then
@@ -145,6 +172,7 @@ mount_and_boot() {
 	# Build mount options for read write root file system.
 	# If a read-write device was specified via kernel command line, use
 	# it, otherwise default to tmpfs.
+	ROOT_RWDEVICE=$(resolve_device "$ROOT_RWDEVICE")
 	wait_for_device "${ROOT_RWDEVICE}"
 	if [ -n "${ROOT_RWDEVICE}" ]; then
 
