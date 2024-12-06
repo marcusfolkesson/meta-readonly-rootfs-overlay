@@ -34,6 +34,14 @@ early_setup() {
 	grep -w "/dev" /proc/mounts >/dev/null || $MOUNT -t devtmpfs none /dev
 }
 
+probe_fs() {
+    # Determine if we need to probe any modules to support the filesystem
+    if ! grep -w "$1" /proc/filesystems >/dev/null; then
+        modprobe "$optarg" 2> /dev/null || \
+            log "Could not load $optarg module"
+    fi
+}
+
 read_args() {
 	[ -z "${CMDLINE+x}" ] && CMDLINE=$(cat /proc/cmdline)
 	for arg in $CMDLINE; do
@@ -45,8 +53,7 @@ read_args() {
 				ROOT_RODEVICE=$optarg ;;
 			rootfstype=*)
 				ROOT_ROFSTYPE="$optarg"
-				modprobe "$optarg" 2> /dev/null || \
-					log "Could not load $optarg module";;
+				probe_fs "$optarg" ;;
 			rootinit=*)
 				ROOT_ROINIT=$optarg ;;
 			rootoptions=*)
@@ -55,8 +62,7 @@ read_args() {
 				ROOT_RWDEVICE=$optarg ;;
 			rootrwfstype=*)
 				ROOT_RWFSTYPE="$optarg"
-				modprobe "$optarg" 2> /dev/null || \
-					log "Could not load $optarg module";;
+				probe_fs "$optarg" ;;
 			rootrwreset=*)
 				ROOT_RWRESET=$optarg ;;
 			rootrwoptions=*)
@@ -65,7 +71,7 @@ read_args() {
 				modprobe "$optarg" 2> /dev/null || \
 					log "Could not load $optarg module";;
 			init=*)
-			INIT=$optarg ;;
+				INIT=$optarg ;;
 		esac
 	done
 }
