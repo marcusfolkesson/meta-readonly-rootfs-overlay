@@ -139,6 +139,8 @@ The same as before but it now starts `/bin/sh` instead of `/sbin/init`
 and aufs is supported) is not build into the kernel, you can specify the required
 module name here.
 
+`preinit=` specifies an executable that should run before `init`.
+
 `root=` specifies the read-only root file system device. If this is not
 specified, the current rootfs is used.
 

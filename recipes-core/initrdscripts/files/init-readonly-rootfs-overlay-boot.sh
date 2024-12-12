@@ -8,6 +8,7 @@ PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
 MOUNT="/bin/mount"
 
+PREINIT=""
 INIT="/sbin/init"
 ROOT_ROINIT="/sbin/init"
 
@@ -70,6 +71,8 @@ read_args() {
 			overlayfstype=*)
 				modprobe "$optarg" 2> /dev/null || \
 					log "Could not load $optarg module";;
+			preinit=*)
+				PREINIT=$optarg ;;
 			init=*)
 				INIT=$optarg ;;
 		esac
@@ -213,6 +216,11 @@ mount_and_boot() {
 	$MOUNT -n --move /proc ${ROOT_MOUNT}/proc
 	$MOUNT -n --move /sys ${ROOT_MOUNT}/sys
 	$MOUNT -n --move /dev ${ROOT_MOUNT}/dev
+
+    # Execute any preinit scripts
+	if [ -x "${PREINIT}" ]; then
+        ${PREINIT}
+	fi
 
 	cd $ROOT_MOUNT
 
