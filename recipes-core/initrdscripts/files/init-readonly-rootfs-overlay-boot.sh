@@ -207,6 +207,11 @@ mount_and_boot() {
 			;;
 	esac
 
+    # Execute any preinit scripts
+	if [ -x "${PREINIT}" ]; then
+        ${PREINIT}
+	fi
+
 	# Move read-only and read-write root file system into the overlay
 	# file system
 	mkdir -p $ROOT_MOUNT/$ROOT_ROMOUNT $ROOT_MOUNT/$ROOT_RWMOUNT
@@ -217,10 +222,6 @@ mount_and_boot() {
 	$MOUNT -n --move /sys ${ROOT_MOUNT}/sys
 	$MOUNT -n --move /dev ${ROOT_MOUNT}/dev
 
-    # Execute any preinit scripts
-	if [ -x "${PREINIT}" ]; then
-        ${PREINIT}
-	fi
 
 	cd $ROOT_MOUNT
 
