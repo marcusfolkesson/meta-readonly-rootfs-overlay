@@ -172,10 +172,9 @@ mount_and_boot() {
 	# Build mount options for read write root file system.
 	# If a read-write device was specified via kernel command line, use
 	# it, otherwise default to tmpfs.
-	ROOT_RWDEVICE=$(resolve_device "$ROOT_RWDEVICE")
-	wait_for_device "${ROOT_RWDEVICE}"
 	if [ -n "${ROOT_RWDEVICE}" ]; then
-
+	        ROOT_RWDEVICE=$(resolve_device "$ROOT_RWDEVICE")
+		wait_for_device "${ROOT_RWDEVICE}"
 		ROOT_RWMOUNTPARAMS="-o $ROOT_RWMOUNTOPTIONS_DEVICE $ROOT_RWDEVICE"
 		if [ -n "${ROOT_RWFSTYPE}" ]; then
 			ROOT_RWMOUNTPARAMS="-t $ROOT_RWFSTYPE $ROOT_RWMOUNTPARAMS"
