@@ -1,9 +1,6 @@
 #!/bin/sh
 # shellcheck shell=dash
 
-# Enable strict shell mode
-set -euo pipefail
-
 PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
 MOUNT="/bin/mount"
@@ -27,6 +24,60 @@ ROOT_ROMOUNTOPTIONS_DEVICE="noatime,nodiratime"
 ROOT_RWFSTYPE=""
 ROOT_RWMOUNTOPTIONS="rw,noatime,mode=755 tmpfs"
 ROOT_RWMOUNTOPTIONS_DEVICE="rw,noatime,mode=755"
+
+INITRAMFS_FRAMEWORK=""
+
+# Called by initramfs-framework?
+if [ ! -z "${MODULES_DIR+x}" ]; then
+
+INITRAMFS_FRAMEWORK="1"
+
+read_args() {
+	# Parse arguments from initramfs-framework
+	if [ ! -z "${bootparam_root+x}" ]; then
+		ROOT_RODEVICE=${bootparam_root}
+	fi
+	if [ ! -z "${bootparam_rootfstype+x}" ]; then
+		ROOT_ROFSTYPE=${bootparam_rootfstype}
+	fi
+	if [ ! -z "${bootparam_rootinit+x}" ]; then
+		ROOT_ROINIT=${bootparam_rootinit}
+	fi
+	if [ ! -z "${bootparam_rootoptions+x}" ]; then
+		ROOT_ROMOUNTOPTIONS_DEVICE=${bootparam_rootoptions}
+	fi
+	if [ ! -z "${bootparam_rootrw+x}" ]; then
+		ROOT_RWDEVICE=${bootparam_rootrw}
+	fi
+	if [ ! -z "${bootparam_rootrwfstype+x}" ]; then
+		ROOT_RWFSTYPE=$bootparam_rootrwfstype}
+		load_kernel_module ${bootparam_rootrwfstype}
+	fi
+	if [ ! -z "${bootparam_rootrwreset+x}" ]; then
+		ROOT_RWRESET=${bootparam_rootrwreset}
+	fi
+        if [ ! -z "${bootparam_rootrwupperdir+x}" ]; then
+                ROOT_RWUPPERDIR=${bootparam_rootrwupperdir}
+        fi
+	if [ ! -z "${bootparam_rootrwoptions+x}" ]; then
+		ROOT_RWMOUNTOPTIONS_DEVICE=${bootparam_rootrwoptions}
+	fi
+	if [ ! -z "${bootparam_overlayfstype+x}" ]; then
+		load_kernel_module ${bootparam_overlayfstype}
+	fi
+	if [ ! -z "${bootparam_init+x}" ]; then
+		INIT=${bootparam_init}
+	fi
+}
+
+log() {
+	msg "$@"
+}
+
+else
+
+# Enable strict shell mode
+set -euo pipefail
 
 early_setup() {
 	mkdir -p /proc
@@ -92,6 +143,8 @@ log() {
 	echo "rorootfs-overlay: $1" > "$CONSOLE"
 }
 
+fi
+
 resolve_device() {
 	local dev=$1
 
@@ -135,35 +188,37 @@ wait_for_device() {
 	done
 }
 
-early_setup
-
-[ -z "${CONSOLE+x}" ] && CONSOLE="/dev/console"
-
-read_args
-
 mount_and_boot() {
 	mkdir -p $ROOT_MOUNT $ROOT_ROMOUNT $ROOT_RWMOUNT
 
-	# Build mount options for read only root file system.
-	# If no read-only device was specified via kernel command line, use
-	# current root file system via bind mount.
-	ROOT_RODEVICE=$(resolve_device "$ROOT_RODEVICE")
-	wait_for_device "${ROOT_RODEVICE}"
-	ROOT_ROMOUNTPARAMS_BIND="-o ${ROOT_ROMOUNTOPTIONS} /"
-	if [ -n "${ROOT_RODEVICE}" ]; then
-		ROOT_ROMOUNTPARAMS="-o ${ROOT_ROMOUNTOPTIONS_DEVICE} $ROOT_RODEVICE"
-		if [ -n "${ROOT_ROFSTYPE}" ]; then
-			ROOT_ROMOUNTPARAMS="-t $ROOT_ROFSTYPE $ROOT_ROMOUNTPARAMS"
+	# Rootfs already mounted? (initramfs-framework)
+	if [ -z "${ROOTFS_DIR+x}" ]; then
+		# Build mount options for read only root file system.
+		# If no read-only device was specified via kernel command line, use
+		# current root file system via bind mount.
+		ROOT_RODEVICE=$(resolve_device "$ROOT_RODEVICE")
+		wait_for_device "${ROOT_RODEVICE}"
+		ROOT_ROMOUNTPARAMS_BIND="-o ${ROOT_ROMOUNTOPTIONS} /"
+		if [ -n "${ROOT_RODEVICE}" ]; then
+			ROOT_ROMOUNTPARAMS="-o ${ROOT_ROMOUNTOPTIONS_DEVICE} $ROOT_RODEVICE"
+			if [ -n "${ROOT_ROFSTYPE}" ]; then
+				ROOT_ROMOUNTPARAMS="-t $ROOT_ROFSTYPE $ROOT_ROMOUNTPARAMS"
+			fi
+		else
+			ROOT_ROMOUNTPARAMS="$ROOT_ROMOUNTPARAMS_BIND"
+		fi
+
+		# Mount root file system to new mount-point, if unsuccessful, try bind
+		# mounting current root file system.
+		# shellcheck disable=SC2086
+		if ! $MOUNT $ROOT_ROMOUNTPARAMS "$ROOT_ROMOUNT" 2>/dev/null; then
+			log "Could not mount $ROOT_RODEVICE, bind mounting..."
+			if ! $MOUNT $ROOT_ROMOUNTPARAMS_BIND "$ROOT_ROMOUNT"; then
+				fatal "Could not mount read-only rootfs"
+			fi
 		fi
 	else
-		ROOT_ROMOUNTPARAMS="$ROOT_ROMOUNTPARAMS_BIND"
-	fi
-
-	# Mount root file system to new mount-point, if unsuccessful, try bind
-	# mounting current root file system.
-	# shellcheck disable=SC2086
-	if ! $MOUNT $ROOT_ROMOUNTPARAMS "$ROOT_ROMOUNT" 2>/dev/null; then
-		log "Could not mount $ROOT_RODEVICE, bind mounting..."
+		ROOT_ROMOUNTPARAMS_BIND="-o ${ROOT_ROMOUNTOPTIONS} ${ROOTFS_DIR}"
 		if ! $MOUNT $ROOT_ROMOUNTPARAMS_BIND "$ROOT_ROMOUNT"; then
 			fatal "Could not mount read-only rootfs"
 		fi
@@ -185,7 +240,7 @@ mount_and_boot() {
 	# If a read-write device was specified via kernel command line, use
 	# it, otherwise default to tmpfs.
 	if [ -n "${ROOT_RWDEVICE}" ]; then
-	        ROOT_RWDEVICE=$(resolve_device "$ROOT_RWDEVICE")
+		ROOT_RWDEVICE=$(resolve_device "$ROOT_RWDEVICE")
 		wait_for_device "${ROOT_RWDEVICE}"
 		ROOT_RWMOUNTPARAMS="-o $ROOT_RWMOUNTOPTIONS_DEVICE $ROOT_RWDEVICE"
 		if [ -n "${ROOT_RWFSTYPE}" ]; then
@@ -248,16 +303,49 @@ mount_and_boot() {
 	$MOUNT -n --move $ROOT_ROMOUNT ${ROOT_MOUNT}/$ROOT_ROMOUNT
 	$MOUNT -n --move $ROOT_RWMOUNT ${ROOT_MOUNT}/$ROOT_RWMOUNT
 
-	$MOUNT -n --move /proc ${ROOT_MOUNT}/proc
-	$MOUNT -n --move /sys ${ROOT_MOUNT}/sys
-	$MOUNT -n --move /dev ${ROOT_MOUNT}/dev
+	# Don't do the finish procedure when using initramfs-framework,
+	# just set the ROOTFS_DIR
+	if [ -n "${INITRAMFS_FRAMEWORK}" ]; then
+		ROOTFS_DIR=$ROOT_MOUNT
+	else
+		$MOUNT -n --move /proc ${ROOT_MOUNT}/proc
+		$MOUNT -n --move /sys ${ROOT_MOUNT}/sys
+		$MOUNT -n --move /dev ${ROOT_MOUNT}/dev
 
 
-	cd $ROOT_MOUNT
+		cd $ROOT_MOUNT
 
-	# switch to actual init in the overlay root file system
-	exec chroot $ROOT_MOUNT "$INIT" ||
-		fatal "Couldn't chroot, dropping to shell"
+		# switch to actual init in the overlay root file system
+		exec chroot $ROOT_MOUNT "$INIT" ||
+			fatal "Couldn't chroot, dropping to shell"
+	fi
 }
 
-mount_and_boot
+if [ -n "${INITRAMFS_FRAMEWORK}" ]; then
+	overlayroot_enabled() {
+		return 0
+	}
+
+	overlayroot_run() {
+		# Save shell mode
+		OLDOPTS=$(set +o)
+
+		# Enable strict shell mode
+		set -euo pipefail
+
+		read_args
+
+		mount_and_boot
+
+		# Restore shell mode
+		eval "${OLDOPTS}"
+	}
+else
+	early_setup
+
+	[ -z "${CONSOLE+x}" ] && CONSOLE="/dev/console"
+
+	read_args
+
+	mount_and_boot
+fi
