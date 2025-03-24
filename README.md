@@ -99,7 +99,7 @@ If you use this layer you do *not* need to set `read-only-rootfs` in the
 ## Kernel command line parameters
 
 These examples are not meant to be complete. They just contain parameters that
-are used by the initscript of this repository. Some additional paramters might
+are used by the initscript of this repository. Some additional parameters might
 be necessary.
 
 ### Example using initrd:
