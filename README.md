@@ -166,3 +166,6 @@ Defaults to `rw,noatime,mode=755`.
 
 `rootrwreset=` set to `yes` if you want to delete all the files in the
 read-write file system prior to building the overlay root files system.
+
+`rootrwupperdir=` specifies a custom rootrw upperdir name under overlayfs.
+Defaults to `upperdir`.
