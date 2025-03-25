@@ -18,6 +18,7 @@ ROOT_RWDEVICE=""
 ROOT_ROMOUNT="/media/rfs/ro"
 ROOT_RWMOUNT="/media/rfs/rw"
 ROOT_RWRESET="no"
+ROOT_RWUPPERDIR="upperdir"
 
 ROOT_ROFSTYPE=""
 ROOT_ROMOUNTOPTIONS="bind"
@@ -66,6 +67,8 @@ read_args() {
 				probe_fs "$optarg" ;;
 			rootrwreset=*)
 				ROOT_RWRESET=$optarg ;;
+			rootrwupperdir=*)
+				ROOT_RWUPPERDIR=$optarg ;;
 			rootrwoptions=*)
 				ROOT_RWMOUNTOPTIONS_DEVICE="$optarg" ;;
 			overlayfstype=*)
@@ -216,11 +219,11 @@ mount_and_boot() {
 	# Create/Mount overlay root file system
 	case $union_fs_type in
 		"overlay")
-			mkdir -p $ROOT_RWMOUNT/upperdir $ROOT_RWMOUNT/work
+			mkdir -p $ROOT_RWMOUNT/$ROOT_RWUPPERDIR $ROOT_RWMOUNT/work
 			$MOUNT -t overlay overlay \
 				-o "$(printf "%s%s%s" \
 					"lowerdir=$ROOT_ROMOUNT," \
-					"upperdir=$ROOT_RWMOUNT/upperdir," \
+					"upperdir=$ROOT_RWMOUNT/$ROOT_RWUPPERDIR," \
 					"workdir=$ROOT_RWMOUNT/work")" \
 				$ROOT_MOUNT
 			;;
