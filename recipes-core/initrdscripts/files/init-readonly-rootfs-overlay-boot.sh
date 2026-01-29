@@ -289,7 +289,7 @@ mount_and_boot() {
 				$ROOT_MOUNT
 			;;
 		"aufs")
-			$MOUNT -t aufs i\
+			$MOUNT -t aufs \
 				-o "dirs=$ROOT_RWMOUNT=rw:$ROOT_ROMOUNT=ro" \
 				aufs $ROOT_MOUNT
 			;;
