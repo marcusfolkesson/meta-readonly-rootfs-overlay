@@ -147,22 +147,29 @@ fi
 
 resolve_device() {
 	local dev=$1
+	local new_dev
 
-	if [ "$(echo $dev | cut -c1-5)" = "UUID=" ]; then
-		local uuid=$(echo $dev | cut -c6-)
-		new_dev="/dev/disk/by-uuid/$uuid"
-	elif [ "$(echo $dev | cut -c1-9)" = "PARTUUID=" ]; then
-		local partuuid=$(echo $dev | cut -c10-)
-		new_dev="/dev/disk/by-partuuid/$partuuid"
-	elif [ "$(echo $dev | cut -c1-10)" = "PARTLABEL=" ]; then
-		local partlabel=$(echo $dev | cut -c11-)
-		new_dev="/dev/disk/by-partlabel/$partlabel"
-	elif [ "$(echo $dev | cut -c1-6)" = "LABEL=" ]; then
-		local label=$(echo $dev | cut -c7-)
-		new_dev="/dev/disk/by-label/$label"
-	else
-		new_dev="$dev"
-	fi
+	case "$dev" in
+		UUID=*)
+			local uuid="${dev#UUID=}"
+			new_dev="/dev/disk/by-uuid/$uuid"
+			;;
+		PARTUUID=*)
+			local partuuid="${dev#PARTUUID=}"
+			new_dev="/dev/disk/by-partuuid/$partuuid"
+			;;
+		PARTLABEL=*)
+			local partlabel="${dev#PARTLABEL=}"
+			new_dev="/dev/disk/by-partlabel/$partlabel"
+			;;
+		LABEL=*)
+			local label="${dev#LABEL=}"
+			new_dev="/dev/disk/by-label/$label"
+			;;
+		*)
+			new_dev="$dev"
+			;;
+	esac
 
 	if [ "$new_dev" != "$dev" ] && [ ! -d /dev/disk ]; then
 		fatal "$dev device naming is not supported without udev"
