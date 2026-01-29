@@ -180,17 +180,16 @@ resolve_device() {
 
 wait_for_device() {
 	local dev=$1
+	local counter=0
 
 	# Skip for e.g. `rootrw=ubi0:overlay`
 	echo "$dev" | grep -q ":" && return
 
-	counter=0
 	while [ ! -b "$dev" ]; do
 		sleep .100
 		counter=$((counter + 1))
-		if [ $counter -ge 50 ]; then
-			fatal "$dev is not availble"
-			exit
+		if [ "$counter" -ge 50 ]; then
+			fatal "$dev is not available"
 		fi
 	done
 }
