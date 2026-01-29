@@ -135,8 +135,8 @@ The same as before but it now starts `/bin/sh` instead of `/sbin/init`
 
 ### Details
 
-`overlayfstype=` if support fot the overlay filesystem type (currently overlayfs
-and aufs is supported) is not build into the kernel, you can specify the required
+`overlayfstype=` if support for the overlay filesystem type (currently overlayfs
+and aufs is supported) is not built into the kernel, you can specify the required
 module name here.
 
 `preinit=` specifies an executable that should run before `init`.

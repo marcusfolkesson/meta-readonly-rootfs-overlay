@@ -28,44 +28,44 @@ ROOT_RWMOUNTOPTIONS_DEVICE="rw,noatime,mode=755"
 INITRAMFS_FRAMEWORK=""
 
 # Called by initramfs-framework?
-if [ ! -z "${MODULES_DIR+x}" ]; then
+if [ -n "${MODULES_DIR+x}" ]; then
 
 INITRAMFS_FRAMEWORK="1"
 
 read_args() {
 	# Parse arguments from initramfs-framework
-	if [ ! -z "${bootparam_root+x}" ]; then
+	if [ -n "${bootparam_root+x}" ]; then
 		ROOT_RODEVICE=${bootparam_root}
 	fi
-	if [ ! -z "${bootparam_rootfstype+x}" ]; then
+	if [ -n "${bootparam_rootfstype+x}" ]; then
 		ROOT_ROFSTYPE=${bootparam_rootfstype}
 	fi
-	if [ ! -z "${bootparam_rootinit+x}" ]; then
+	if [ -n "${bootparam_rootinit+x}" ]; then
 		ROOT_ROINIT=${bootparam_rootinit}
 	fi
-	if [ ! -z "${bootparam_rootoptions+x}" ]; then
+	if [ -n "${bootparam_rootoptions+x}" ]; then
 		ROOT_ROMOUNTOPTIONS_DEVICE=${bootparam_rootoptions}
 	fi
-	if [ ! -z "${bootparam_rootrw+x}" ]; then
+	if [ -n "${bootparam_rootrw+x}" ]; then
 		ROOT_RWDEVICE=${bootparam_rootrw}
 	fi
-	if [ ! -z "${bootparam_rootrwfstype+x}" ]; then
+	if [ -n "${bootparam_rootrwfstype+x}" ]; then
 		ROOT_RWFSTYPE=${bootparam_rootrwfstype}
 		load_kernel_module ${bootparam_rootrwfstype}
 	fi
-	if [ ! -z "${bootparam_rootrwreset+x}" ]; then
+	if [ -n "${bootparam_rootrwreset+x}" ]; then
 		ROOT_RWRESET=${bootparam_rootrwreset}
 	fi
-	if [ ! -z "${bootparam_rootrwupperdir+x}" ]; then
+	if [ -n "${bootparam_rootrwupperdir+x}" ]; then
 		ROOT_RWUPPERDIR=${bootparam_rootrwupperdir}
 	fi
-	if [ ! -z "${bootparam_rootrwoptions+x}" ]; then
+	if [ -n "${bootparam_rootrwoptions+x}" ]; then
 		ROOT_RWMOUNTOPTIONS_DEVICE=${bootparam_rootrwoptions}
 	fi
-	if [ ! -z "${bootparam_overlayfstype+x}" ]; then
+	if [ -n "${bootparam_overlayfstype+x}" ]; then
 		load_kernel_module ${bootparam_overlayfstype}
 	fi
-	if [ ! -z "${bootparam_init+x}" ]; then
+	if [ -n "${bootparam_init+x}" ]; then
 		INIT=${bootparam_init}
 	fi
 }
@@ -147,22 +147,29 @@ fi
 
 resolve_device() {
 	local dev=$1
+	local new_dev
 
-	if [ "$(echo $dev | cut -c1-5)" = "UUID=" ]; then
-		local uuid=$(echo $dev | cut -c6-)
-		new_dev="/dev/disk/by-uuid/$uuid"
-	elif [ "$(echo $dev | cut -c1-9)" = "PARTUUID=" ]; then
-		local partuuid=$(echo $dev | cut -c10-)
-		new_dev="/dev/disk/by-partuuid/$partuuid"
-	elif [ "$(echo $dev | cut -c1-10)" = "PARTLABEL=" ]; then
-		local partlabel=$(echo $dev | cut -c11-)
-		new_dev="/dev/disk/by-partlabel/$partlabel"
-	elif [ "$(echo $dev | cut -c1-6)" = "LABEL=" ]; then
-		local label=$(echo $dev | cut -c7-)
-		new_dev="/dev/disk/by-label/$label"
-	else
-		new_dev="$dev"
-	fi
+	case "$dev" in
+		UUID=*)
+			local uuid="${dev#UUID=}"
+			new_dev="/dev/disk/by-uuid/$uuid"
+			;;
+		PARTUUID=*)
+			local partuuid="${dev#PARTUUID=}"
+			new_dev="/dev/disk/by-partuuid/$partuuid"
+			;;
+		PARTLABEL=*)
+			local partlabel="${dev#PARTLABEL=}"
+			new_dev="/dev/disk/by-partlabel/$partlabel"
+			;;
+		LABEL=*)
+			local label="${dev#LABEL=}"
+			new_dev="/dev/disk/by-label/$label"
+			;;
+		*)
+			new_dev="$dev"
+			;;
+	esac
 
 	if [ "$new_dev" != "$dev" ] && [ ! -d /dev/disk ]; then
 		fatal "$dev device naming is not supported without udev"
@@ -173,17 +180,16 @@ resolve_device() {
 
 wait_for_device() {
 	local dev=$1
+	local counter=0
 
 	# Skip for e.g. `rootrw=ubi0:overlay`
 	echo "$dev" | grep -q ":" && return
 
-	counter=0
 	while [ ! -b "$dev" ]; do
 		sleep .100
 		counter=$((counter + 1))
-		if [ $counter -ge 50 ]; then
-			fatal "$dev is not availble"
-			exit
+		if [ "$counter" -ge 50 ]; then
+			fatal "$dev is not available"
 		fi
 	done
 }
@@ -283,7 +289,7 @@ mount_and_boot() {
 				$ROOT_MOUNT
 			;;
 		"aufs")
-			$MOUNT -t aufs i\
+			$MOUNT -t aufs \
 				-o "dirs=$ROOT_RWMOUNT=rw:$ROOT_ROMOUNT=ro" \
 				aufs $ROOT_MOUNT
 			;;
