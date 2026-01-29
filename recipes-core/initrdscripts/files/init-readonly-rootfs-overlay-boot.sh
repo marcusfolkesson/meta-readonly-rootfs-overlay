@@ -28,44 +28,44 @@ ROOT_RWMOUNTOPTIONS_DEVICE="rw,noatime,mode=755"
 INITRAMFS_FRAMEWORK=""
 
 # Called by initramfs-framework?
-if [ ! -z "${MODULES_DIR+x}" ]; then
+if [ -n "${MODULES_DIR+x}" ]; then
 
 INITRAMFS_FRAMEWORK="1"
 
 read_args() {
 	# Parse arguments from initramfs-framework
-	if [ ! -z "${bootparam_root+x}" ]; then
+	if [ -n "${bootparam_root+x}" ]; then
 		ROOT_RODEVICE=${bootparam_root}
 	fi
-	if [ ! -z "${bootparam_rootfstype+x}" ]; then
+	if [ -n "${bootparam_rootfstype+x}" ]; then
 		ROOT_ROFSTYPE=${bootparam_rootfstype}
 	fi
-	if [ ! -z "${bootparam_rootinit+x}" ]; then
+	if [ -n "${bootparam_rootinit+x}" ]; then
 		ROOT_ROINIT=${bootparam_rootinit}
 	fi
-	if [ ! -z "${bootparam_rootoptions+x}" ]; then
+	if [ -n "${bootparam_rootoptions+x}" ]; then
 		ROOT_ROMOUNTOPTIONS_DEVICE=${bootparam_rootoptions}
 	fi
-	if [ ! -z "${bootparam_rootrw+x}" ]; then
+	if [ -n "${bootparam_rootrw+x}" ]; then
 		ROOT_RWDEVICE=${bootparam_rootrw}
 	fi
-	if [ ! -z "${bootparam_rootrwfstype+x}" ]; then
+	if [ -n "${bootparam_rootrwfstype+x}" ]; then
 		ROOT_RWFSTYPE=${bootparam_rootrwfstype}
 		load_kernel_module ${bootparam_rootrwfstype}
 	fi
-	if [ ! -z "${bootparam_rootrwreset+x}" ]; then
+	if [ -n "${bootparam_rootrwreset+x}" ]; then
 		ROOT_RWRESET=${bootparam_rootrwreset}
 	fi
-	if [ ! -z "${bootparam_rootrwupperdir+x}" ]; then
+	if [ -n "${bootparam_rootrwupperdir+x}" ]; then
 		ROOT_RWUPPERDIR=${bootparam_rootrwupperdir}
 	fi
-	if [ ! -z "${bootparam_rootrwoptions+x}" ]; then
+	if [ -n "${bootparam_rootrwoptions+x}" ]; then
 		ROOT_RWMOUNTOPTIONS_DEVICE=${bootparam_rootrwoptions}
 	fi
-	if [ ! -z "${bootparam_overlayfstype+x}" ]; then
+	if [ -n "${bootparam_overlayfstype+x}" ]; then
 		load_kernel_module ${bootparam_overlayfstype}
 	fi
-	if [ ! -z "${bootparam_init+x}" ]; then
+	if [ -n "${bootparam_init+x}" ]; then
 		INIT=${bootparam_init}
 	fi
 }
