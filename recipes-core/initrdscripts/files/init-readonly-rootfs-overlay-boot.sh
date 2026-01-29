@@ -50,15 +50,15 @@ read_args() {
 		ROOT_RWDEVICE=${bootparam_rootrw}
 	fi
 	if [ ! -z "${bootparam_rootrwfstype+x}" ]; then
-		ROOT_RWFSTYPE=$bootparam_rootrwfstype}
+		ROOT_RWFSTYPE=${bootparam_rootrwfstype}
 		load_kernel_module ${bootparam_rootrwfstype}
 	fi
 	if [ ! -z "${bootparam_rootrwreset+x}" ]; then
 		ROOT_RWRESET=${bootparam_rootrwreset}
 	fi
-        if [ ! -z "${bootparam_rootrwupperdir+x}" ]; then
-                ROOT_RWUPPERDIR=${bootparam_rootrwupperdir}
-        fi
+	if [ ! -z "${bootparam_rootrwupperdir+x}" ]; then
+		ROOT_RWUPPERDIR=${bootparam_rootrwupperdir}
+	fi
 	if [ ! -z "${bootparam_rootrwoptions+x}" ]; then
 		ROOT_RWMOUNTOPTIONS_DEVICE=${bootparam_rootrwoptions}
 	fi
